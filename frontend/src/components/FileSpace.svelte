@@ -1,9 +1,15 @@
 <script>
+  import { add_classes } from "svelte/internal";
     import { CurrentDir } from "../../wailsjs/go/main/App.js"
     import { ReturnDirItems } from "../../wailsjs/go/main/App.js"
     import { MoveDir } from "../../wailsjs/go/main/App.js"
     let currentDirectory = []
-    let directoryItems = []
+    let allDirectoryItems = []
+    let shownItems = []
+    let browserCols = 2;
+
+    let searchQuery = '';
+    let searching = false;
     function init() {
       getCurrentDir();
     }
@@ -23,14 +29,15 @@
     function getCurrentDir() {
       CurrentDir().then((res) => (currentDirectory = res)).then(() => {
         ReturnDirItems(currentDirectory).then((res) => {
-          directoryItems = convertStringToArray(res)
+          allDirectoryItems = convertStringToArray(res)
+          shownItems = allDirectoryItems;
         })
       })
     }
   
     function MoveCurrentDir(newDir) {
       MoveDir(newDir).then(() => getCurrentDir())
-      
+      resetSearch();
     }
 
     function handleDragEnd(e) {
@@ -42,13 +49,49 @@
     }
     let windowWidth = 100;
     let windowHeight = 100;
+
+    function handleSearch() {
+      searching = true;
+      searchItems()
+    }
+
+    function resetSearch() {
+      shownItems = allDirectoryItems;
+      searchQuery = ''
+      searching = false;
+    }
+
+    function searchItems() {
+      if (!searchQuery) {
+        resetSearch()
+        return
+      }
+      
+      const searchedItems = allDirectoryItems.filter((item) => {
+        return item.name.includes(searchQuery)
+      })
+
+      shownItems = searchedItems ?? allDirectoryItems;
+      searching = false;
+    }
+    function stringMap(str, func) {
+      let stringArray = str.split("");
+
+      let newStringArray = stringArray.map((item, index) => {
+        return func.call(window, item, index, str);
+      });
+
+      return newStringArray.join("");
+    };
+    let isDragged = false;
+    let curDrag = -1;
   </script>
   <div 
-    draggable="true" 
+    
     class="window" 
-    style="--window-height: {windowHeight}%; --window-width: {windowWidth}%;"
+    style="--browser-columns: {browserCols}; --window-height: {windowHeight}%; --window-width: {windowWidth}%;"
     on:dragstart={
-        () => { windowHeight = windowHeight / 2 }
+        () => { windowHeight = windowHeight }
     }
     on:dragend={handleDragEnd}
     >
@@ -58,20 +101,41 @@
             {dir}
         </button>
         {/each}
+        <div style="position: absolute; width: 300px; right: 0px;">
+          
+          <button style="float: right;" on:click={() => {
+              if (browserCols > 0) {
+                browserCols--
+              }
+              
+            }}>-</button>
+          <button style="float: right;" on:click={() => {
+              if (browserCols < 4) {
+                browserCols++
+              }
+              
+            }}>+</button>
+          <input style="float: right;" id="search" bind:value={searchQuery} on:input={handleSearch} />
+        </div>
     </div>
     <div class="container-box">
         
-          <div class="item-container">
-            {#each directoryItems as item}
-            {#if item.is_directory}
-              <button class="dir-folder" on:click={() => MoveCurrentDir(item.name)}>
-                {item.name}
-              </button>
-            {:else}
-              <button draggable="true" class="dir-item" on:click={() => MoveCurrentDir(item.name)}>
-                {item.name}
-              </button>
-            {/if}
+          <div class="item-container" >
+            {#each shownItems as item, index}
+              {#if item.is_directory}
+                <button class="dir-folder" on:click={() => MoveCurrentDir(item.name)}>
+                  {item.name}
+                </button>
+              {:else}
+                <button
+                draggable="true"
+                on:drag={() => curDrag = index}
+                class="dir-item" 
+                  class:is-dragged={curDrag === index}
+                  >
+                  {item.name}
+                </button>
+              {/if}
             {/each}
           </div>
     </div>
@@ -84,14 +148,18 @@
         height: var(--window-height);
     }
     .dir-part {
-        background-color: rgba(169, 169, 169, 0.932);
+      background-color: rgba(169, 169, 169, 0.932);
       font-size: 16px;
       border: none;
       border-radius: 0;
       cursor: pointer;
       text-align: left;
+      /* max-height: 20px; */
     }
-  
+    .is-dragged {
+      background-color: black;
+      border: dashed 2px gray;
+    }
     .dir-part:hover {
       opacity: 0.8;
       transition: 0.05s;
@@ -107,19 +175,27 @@
       background-color: white;
       text-align: left;
       font-size: 18px;
-      border: none;
+      
       border-radius: 0;
       cursor: pointer;
       transition: 0.1s;
     }
   
     .dir-item:hover, .dir-folder:hover {
+      
       opacity: 0.8;
       transition: 0.06s;
     }
+
+    .dir-item:hover {
+      background-color: rgba(184, 119, 119, 0.151);
+    }
+
+    .dir-folder:hover {
+      background-color: rgba(119, 133, 133, 0.151);
+    }
   
     .dir-folder {
-      
       color: brown;
       
     }
@@ -130,8 +206,7 @@
     .item-container {
       display: grid;
       padding: 2px;
-      grid-template-columns: 1fr 1fr;
-      
+      grid-template-columns: repeat(var(--browser-columns), 1fr);
     }
 
     .container-box {

@@ -2,7 +2,7 @@
 
 ## About
 
-This is the official Wails Svelte template.
+An uncomplicated sample manager. Built with Wails in Go and Svelte.
 
 ## Live Development
 
