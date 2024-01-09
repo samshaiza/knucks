@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"slices"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 func check(e error) {
@@ -19,16 +22,35 @@ var dir_items = []File{}
 
 type File struct {
 	Name string `json:"name"`
+	Location string `json:"location"`
 	Is_directory bool `json:"is_directory"`
+	Is_audio bool `json:"is_audio"`
 }
 
 func CreateFileItem(i os.DirEntry) File {
 	f := File{
 		Name: i.Name(),
 		Is_directory: i.IsDir(),
+		Is_audio: filepath.Ext(i.Name()) == ".mp3" || filepath.Ext(i.Name()) == ".wav",
+		Location: RenderDir(curDir) + "/" + i.Name(),
 	}
 
 	return f
+}
+
+func (a *App) SetStartingDir() {
+	tempDir, err := runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions {
+		DefaultDirectory: "/",
+		Title: "select starting directory",
+		CanCreateDirectories: true,
+	})
+	check(err)
+	fmt.Println(tempDir)
+	if (tempDir != "") {
+		curDir = nil
+		curDir = append(curDir, tempDir)
+	}
+	// curDir[0] = s;
 }
 
 // App struct
@@ -81,12 +103,26 @@ func (a* App) MoveDir(dir string) {
 		index := Index(curDir, dir)
 		curDir = curDir[:index + 1]
 	} else {
-		if (slices.Contains(dir_items, File{Name: dir, Is_directory: true})) {
+		// check if the directory i want to move to is an actual directory
+		if (ArrayContains(dir_items, func(f File) bool { return f.Name == dir && f.Is_directory })) {
 			curDir = append(curDir, "/" + dir)
 		} else {
 			fmt.Println(dir + " is not a directory")
 		}
 	}
+}
+
+func ArrayContains(slice []File, condition func(File) bool) bool {
+	for _, elm := range slice {
+		if condition(elm) {
+			return true
+		}
+	}
+	return false
+}
+
+func (a* App) HandleFileClick() {
+
 }
 
 /* func CheckDir(i string) bool {

@@ -6,10 +6,18 @@ export function CurrentDir() {
   return window['go']['main']['App']['CurrentDir']();
 }
 
+export function HandleFileClick() {
+  return window['go']['main']['App']['HandleFileClick']();
+}
+
 export function MoveDir(arg1) {
   return window['go']['main']['App']['MoveDir'](arg1);
 }
 
 export function ReturnDirItems(arg1) {
   return window['go']['main']['App']['ReturnDirItems'](arg1);
+}
+
+export function SetStartingDir() {
+  return window['go']['main']['App']['SetStartingDir']();
 }

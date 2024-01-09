@@ -3,6 +3,10 @@
 
 export function CurrentDir():Promise<Array<string>>;
 
+export function HandleFileClick():Promise<void>;
+
 export function MoveDir(arg1:string):Promise<void>;
 
 export function ReturnDirItems(arg1:Array<string>):Promise<string>;
+
+export function SetStartingDir():Promise<void>;
